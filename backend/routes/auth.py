@@ -47,14 +47,14 @@ def login():
     if user.status == 0:
         return error('用户已被禁用')
     
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return success({'token': token, 'user': user.to_dict()}, message='登录成功')
 
 @auth_bp.route('/info', methods=['GET'])
 @jwt_required()
 def get_user_info():
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    user = User.query.get(int(user_id))
     if not user:
         return error('用户不存在')
     return success(user.to_dict())

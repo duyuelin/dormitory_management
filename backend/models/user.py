@@ -10,7 +10,7 @@ class User(db.Model):
     """用户表（管理员/宿管）"""
     __tablename__ = 'user'
     
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     real_name = db.Column(db.String(50))
