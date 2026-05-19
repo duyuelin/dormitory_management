@@ -8,6 +8,7 @@ from flask_jwt_extended import JWTManager
 from config import config
 from models import db
 from routes.auth import auth_bp
+from routes.building import building_bp
 
 def create_app(config_name='default'):
     """应用工厂函数"""
@@ -21,6 +22,7 @@ def create_app(config_name='default'):
     
     # 注册蓝图
     app.register_blueprint(auth_bp)
+    app.register_blueprint(building_bp)
     
     # 根路由
     @app.route('/')
