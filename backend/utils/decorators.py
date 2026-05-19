@@ -23,7 +23,7 @@ def admin_required(fn):
         try:
             verify_jwt_in_request()
             user_id = get_jwt_identity()
-            user = User.query.get(user_id)
+            user = User.query.get(int(user_id))
             if not user or user.role != 1:
                 return forbidden()
             return fn(*args, **kwargs)
