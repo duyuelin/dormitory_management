@@ -22,9 +22,7 @@ class Room(db.Model):
     update_time = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     # 关联入住记录
-    
-      # 入住模块未开发，暂时注释，后续时段取消注释
-      # checkins = db.relationship('CheckInRecord', backref='room', lazy='dynamic')
+    checkins = db.relationship('CheckInRecord', backref='room', lazy='dynamic')
       
     def to_dict(self):
         return {
