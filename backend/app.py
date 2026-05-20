@@ -9,6 +9,7 @@ from config import config
 from models import db
 from routes.auth import auth_bp
 from routes.building import building_bp
+from routes.room import room_bp
 
 def create_app(config_name='default'):
     """应用工厂函数"""
@@ -23,6 +24,7 @@ def create_app(config_name='default'):
     # 注册蓝图
     app.register_blueprint(auth_bp)
     app.register_blueprint(building_bp)
+    app.register_blueprint(room_bp)
     
     # 根路由
     @app.route('/')
@@ -53,20 +55,3 @@ if __name__ == '__main__':
     print("  API地址: http://localhost:5000")
     print("=" * 50)
     app.run(host='0.0.0.0', port=5000, debug=True)
-# backend/app.py
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()  # 在这里创建 db
-
-def create_app():
-    app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    db.init_app(app)  # 初始化 db
-    
-    with app.app_context():
-        from models import User  # 在这里导入 models
-    
-    return app
