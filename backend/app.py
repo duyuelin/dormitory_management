@@ -11,6 +11,7 @@ from routes.auth import auth_bp
 from routes.building import building_bp
 from routes.room import room_bp
 from routes.student import student_bp
+from routes.checkin import checkin_bp
 
 def create_app(config_name='default'):
     """应用工厂函数"""
@@ -27,6 +28,7 @@ def create_app(config_name='default'):
     app.register_blueprint(building_bp)
     app.register_blueprint(room_bp)
     app.register_blueprint(student_bp)
+    app.register_blueprint(checkin_bp)
     
     # 根路由
     @app.route('/')
