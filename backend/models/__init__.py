@@ -9,5 +9,6 @@ db = SQLAlchemy()
 from .user import User
 from .building import Building
 from .room import Room
+from .student import Student
 
-__all__ = ['db', 'User', 'Building', 'Room']
+__all__ = ['db', 'User', 'Building', 'Room', 'Student']
