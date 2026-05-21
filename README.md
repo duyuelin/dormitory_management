@@ -6,8 +6,8 @@
 
 | 学号 | 姓名 | 技术侧重点 |
 |------|------|-----------|
-| — | duyuelin | 后端 Python Flask |
-| — | han909 | 前端 Vue3 |
+| 233401010308 | duyuelin | 后端 Python Flask |
+| 233401010306 | han909 | 前端 Vue3 |
 
 **项目地址**: https://github.com/duyuelin/dormitory_management
 
