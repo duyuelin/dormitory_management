@@ -11,5 +11,6 @@ from .building import Building
 from .room import Room
 from .student import Student
 from .checkin import CheckInRecord
+from .repair import RepairRecord
 
-__all__ = ['db', 'User', 'Building', 'Room', 'Student', 'CheckInRecord']
+__all__ = ['db', 'User', 'Building', 'Room', 'Student', 'CheckInRecord', 'RepairRecord']
