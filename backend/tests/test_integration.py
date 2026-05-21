@@ -206,6 +206,136 @@ class IntegrationTestCase(unittest.TestCase):
             self.assertEqual(Student.query.get(1).status, 0)
 
 
+    # ====== 第2轮：duyuelin编写 ======
+
+    def test_checkin_bed_exceeds_capacity(self):
+        """边界测试：办理入住时床位号超过房间总床位数，应拒绝"""
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        with self.app.app_context():
+            b = Building(name='1号楼', code='B001', total_beds=4, available_beds=4)
+            r = Room(building_id=1, room_number='101', total_beds=4, available_beds=4)
+            s = Student(student_id='2024001001', name='张三', status=2)
+            db.session.add_all([b, r, s])
+            db.session.commit()
+
+        # 尝试入住床位5（房间只有4张床）
+        resp = self.client.post('/api/checkin/check-in',
+            data=json.dumps({'student_id': 1, 'room_id': 1, 'bed_number': 5}),
+            content_type='application/json', headers=headers)
+        data = json.loads(resp.data)
+        self.assertNotEqual(data['code'], 200)
+
+    def test_concurrent_checkins_fill_room(self):
+        """边界测试：连续入住直到房间满，验证房间状态变为已满"""
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        with self.app.app_context():
+            b = Building(name='1号楼', code='B001', total_beds=2, available_beds=2)
+            r = Room(building_id=1, room_number='101', total_beds=2, available_beds=2)
+            s1 = Student(student_id='2024001001', name='张三', status=2)
+            s2 = Student(student_id='2024001002', name='李四', status=2)
+            db.session.add_all([b, r, s1, s2])
+            db.session.commit()
+
+        # 第一人入住
+        resp = self.client.post('/api/checkin/check-in',
+            data=json.dumps({'student_id': 1, 'room_id': 1, 'bed_number': 1}),
+            content_type='application/json', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 第二人入住
+        resp = self.client.post('/api/checkin/check-in',
+            data=json.dumps({'student_id': 2, 'room_id': 1, 'bed_number': 2}),
+            content_type='application/json', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 验证房间已满
+        with self.app.app_context():
+            room = Room.query.get(1)
+            self.assertEqual(room.available_beds, 0)
+            self.assertEqual(room.status, 2)
+
+    def test_room_update_beds_propagate(self):
+        """一致性测试：更新房间总床位后，宿舍楼床位统计同步更新"""
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        with self.app.app_context():
+            b = Building(name='1号楼', code='B001', total_beds=4, available_beds=4)
+            r = Room(building_id=1, room_number='101', total_beds=4, available_beds=4)
+            db.session.add_all([b, r])
+            db.session.commit()
+
+        # 更新房间总床位从4改为6
+        resp = self.client.put('/api/room/update',
+            data=json.dumps({'id': 1, 'total_beds': 6, 'available_beds': 6}),
+            content_type='application/json', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 验证宿舍楼床位同步
+        with self.app.app_context():
+            building = Building.query.get(1)
+            self.assertEqual(building.total_beds, 6)
+            self.assertEqual(building.available_beds, 6)
+
+    def test_checkout_then_new_checkin(self):
+        """流程测试：退宿后释放床位，另一学生入住同一床位"""
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        with self.app.app_context():
+            b = Building(name='1号楼', code='B001', total_beds=4, available_beds=4)
+            r = Room(building_id=1, room_number='101', total_beds=4, available_beds=4)
+            s1 = Student(student_id='2024001001', name='张三', status=2)
+            s2 = Student(student_id='2024001002', name='李四', status=2)
+            db.session.add_all([b, r, s1, s2])
+            db.session.commit()
+
+        # 张三入住床位1
+        resp = self.client.post('/api/checkin/check-in',
+            data=json.dumps({'student_id': 1, 'room_id': 1, 'bed_number': 1}),
+            content_type='application/json', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 获取入住记录
+        with self.app.app_context():
+            record = CheckInRecord.query.first()
+
+        # 张三退宿
+        resp = self.client.post(f'/api/checkin/check-out/{record.id}', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 李四入住同一床位
+        resp = self.client.post('/api/checkin/check-in',
+            data=json.dumps({'student_id': 2, 'room_id': 1, 'bed_number': 1}),
+            content_type='application/json', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 验证李四在住，房间床位正确
+        with self.app.app_context():
+            s2 = Student.query.get(2)
+            self.assertEqual(s2.status, 1)
+            room = Room.query.get(1)
+            self.assertEqual(room.available_beds, 3)
+
+    def test_delete_room_with_active_checkin(self):
+        """边界测试：删除有在住记录的宿舍楼时应拒绝（防止孤儿记录）"""
+        headers = {'Authorization': f'Bearer {self.admin_token}'}
+        with self.app.app_context():
+            b = Building(name='1号楼', code='B001', total_beds=4, available_beds=4)
+            r = Room(building_id=1, room_number='101', total_beds=4, available_beds=4)
+            s = Student(student_id='2024001001', name='张三', status=2)
+            db.session.add_all([b, r, s])
+            db.session.commit()
+            room_id = r.id
+
+        # 入住
+        resp = self.client.post('/api/checkin/check-in',
+            data=json.dumps({'student_id': 1, 'room_id': 1, 'bed_number': 1}),
+            content_type='application/json', headers=headers)
+        self.assertEqual(json.loads(resp.data)['code'], 200)
+
+        # 尝试删除有在住记录的房间
+        resp = self.client.delete(f'/api/room/delete/{room_id}', headers=headers)
+        data = json.loads(resp.data)
+        self.assertNotEqual(data['code'], 200)
+
+
 def run_tests():
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
