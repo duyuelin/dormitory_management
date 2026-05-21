@@ -43,7 +43,8 @@ def check_in():
     occupied = CheckInRecord.query.filter_by(room_id=room.id, bed_number=bed_number, status=1).first()
     if occupied:
         return error('该床位已被占用')
-
+    if bed_number < 1 or bed_number > room.total_beds:
+      return error('床位号超出房间容量')
     record = CheckInRecord(
         student_id=student.id,
         room_id=room.id,
@@ -56,6 +57,8 @@ def check_in():
         room.available_beds -= 1
         if room.available_beds == 0:
             room.status = 2
+        building = room.building
+        building.available_beds -= 1
         student.status = 1
         db.session.add(record)
         db.session.commit()
@@ -82,6 +85,9 @@ def check_out(record_id):
         room = record.room
         room.available_beds += 1
         room.status = 1
+
+        building = record.room.building
+        building.available_beds += 1
 
         student = record.student
         student.status = 0
