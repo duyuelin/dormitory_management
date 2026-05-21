@@ -56,6 +56,8 @@ def check_in():
         room.available_beds -= 1
         if room.available_beds == 0:
             room.status = 2
+        building = room.building
+        building.available_beds -= 1
         student.status = 1
         db.session.add(record)
         db.session.commit()
@@ -82,6 +84,9 @@ def check_out(record_id):
         room = record.room
         room.available_beds += 1
         room.status = 1
+
+        building = record.room.building
+        building.available_beds += 1
 
         student = record.student
         student.status = 0
