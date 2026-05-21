@@ -1,6 +1,7 @@
 """
 学生管理模块测试代码
 @author 结对小组 - 后端测试
+@cross-testing han909 交叉测试验证通过 (2026-05-21)
 """
 import unittest
 import json
